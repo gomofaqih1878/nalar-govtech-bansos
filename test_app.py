@@ -294,5 +294,15 @@ class FlaskAppTestCase(unittest.TestCase):
         self.assertEqual(res_reset.status_code, 200)
         print(" [PASS] Large 150-row CSV batch works seamlessly without cookie overflow.")
 
+    def test_static_assets_served(self):
+        res_css = self.app.get('/static/css/custom.css')
+        self.assertEqual(res_css.status_code, 200)
+        res_css.close()
+
+        res_js = self.app.get('/static/js/app.js')
+        self.assertEqual(res_js.status_code, 200)
+        res_js.close()
+        print(" [PASS] Static CSS and JS assets served cleanly from public/static.")
+
 if __name__ == '__main__':
     unittest.main()

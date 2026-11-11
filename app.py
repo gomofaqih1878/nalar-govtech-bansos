@@ -3,6 +3,8 @@ import io
 import csv
 import json
 import uuid
+import zlib
+import base64
 import tempfile
 from flask import (
     Flask, render_template, request, jsonify, 
@@ -11,26 +13,43 @@ from flask import (
 import pandas as pd
 from model_service import engine
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder='templates',
+    static_folder='public/static',
+    static_url_path='/static'
+)
 app.secret_key = os.environ.get('SECRET_KEY', 'nalar-govtech-ai-super-secret-key-2026')
 
 
-# --- BATCH TEMP STORAGE HELPERS (Avoids 4KB browser cookie limit on large CSVs) ---
+# --- BATCH STORAGE HELPERS (Stateless compressed cookie for small CSV + /tmp fallback for large CSV) ---
 def _get_batch_filepath(batch_id):
     if not batch_id or not str(batch_id).isalnum():
         return None
     return os.path.join(tempfile.gettempdir(), f"nalar_batch_{batch_id}.csv")
 
 
-def _save_session_batch(csv_str):
-    old_id = session.get('batch_id')
-    if old_id:
-        old_path = _get_batch_filepath(old_id)
+def _cleanup_batch_file(batch_id):
+    if batch_id:
+        old_path = _get_batch_filepath(batch_id)
         if old_path and os.path.exists(old_path):
             try:
                 os.remove(old_path)
             except OSError:
                 pass
+
+
+def _save_session_batch(csv_str):
+    _cleanup_batch_file(session.pop('batch_id', None))
+    compressed = base64.urlsafe_b64encode(
+        zlib.compress(csv_str.encode('utf-8'), level=9)
+    ).decode('ascii')
+
+    if len(compressed) <= 2800:
+        session['batch_csv_z'] = compressed
+        return
+
+    session.pop('batch_csv_z', None)
     batch_id = uuid.uuid4().hex
     filepath = _get_batch_filepath(batch_id)
     with open(filepath, 'w', encoding='utf-8', newline='') as f:
@@ -39,6 +58,12 @@ def _save_session_batch(csv_str):
 
 
 def _load_session_batch_csv():
+    compressed = session.get('batch_csv_z')
+    if compressed:
+        try:
+            return zlib.decompress(base64.urlsafe_b64decode(compressed.encode('ascii'))).decode('utf-8')
+        except Exception:
+            pass
     batch_id = session.get('batch_id')
     filepath = _get_batch_filepath(batch_id)
     if filepath and os.path.exists(filepath):
@@ -48,13 +73,8 @@ def _load_session_batch_csv():
 
 
 def _clear_session_batch():
-    batch_id = session.pop('batch_id', None)
-    filepath = _get_batch_filepath(batch_id)
-    if filepath and os.path.exists(filepath):
-        try:
-            os.remove(filepath)
-        except OSError:
-            pass
+    session.pop('batch_csv_z', None)
+    _cleanup_batch_file(session.pop('batch_id', None))
     session.pop('has_custom_batch', None)
     session.pop('custom_batch_name', None)
     session.pop('custom_batch_count', None)

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{env/**,__pycache__/**,test_app.py,dashboard_xai_bansos_final.py}"
+    }
+  }
+}
