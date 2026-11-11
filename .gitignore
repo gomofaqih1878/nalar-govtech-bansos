@@ -1,0 +1,20 @@
+# Virtual environments (jangan ikut upload ke GitHub)
+env/
+venv/
+.venv/
+ENV/
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Environment variables & logs
+.env
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

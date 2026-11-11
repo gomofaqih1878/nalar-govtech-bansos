@@ -1,0 +1,8 @@
+Flask>=3.0,<4.0
+gunicorn>=22.0,<24.0
+pandas>=2.2,<4.0
+numpy>=1.26,<3.0
+scikit-learn>=1.5,<2.0
+lime==0.2.0.1
+fpdf==1.7.2
+setuptools>=70.0

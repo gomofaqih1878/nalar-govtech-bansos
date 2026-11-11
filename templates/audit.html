@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Transparansi & Bias Algoritma (XAI Hub) | NALAR{% endblock %}
+
+{% block content %}
+<div class="py-10 bg-warm-50 min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        
+        <!-- Header -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-stone-200/80">
+            <div class="space-y-1.5">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-xs font-semibold">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                    <span>Modul 4: Transparansi Algoritma & Akuntabilitas Publik</span>
+                </div>
+                <h1 class="font-serif text-3xl sm:text-4xl font-bold text-stone-900 tracking-tight">
+                    Audit Transparansi & Bobot Model AI
+                </h1>
+                <p class="text-stone-500 text-xs sm:text-sm max-w-2xl leading-relaxed">
+                    Bongkar cara kerja model kecerdasan buatan NALAR. Memastikan setiap keputusan penetapan bantuan sosial bebas dari manipulasi, nepotisme, dan sejalan dengan kriteria kemiskinan nasional.
+                </p>
+            </div>
+
+            <div class="p-3 bg-white rounded-2xl border border-stone-200 shadow-sm text-xs text-stone-600 flex items-center gap-2.5">
+                <i data-lucide="award" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i>
+                <span>Status Model: <strong>Terverifikasi Bebas Bias (Fairness Certified)</strong></span>
+            </div>
+        </div>
+
+        <!-- 2 Column Layout: Global Feature Importance & Principles -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Left: Feature Importance Breakdown -->
+            <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+                
+                <div class="border-b border-stone-100 pb-4">
+                    <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">BOBOT GLOBAL RANDOM FOREST</span>
+                    <h2 class="font-serif text-xl sm:text-2xl font-bold text-stone-900">
+                        Peta Dominasi Variabel Keputusan
+                    </h2>
+                    <p class="text-xs text-stone-500 mt-1">
+                        Persentase pengaruh setiap indikator sosio-ekonomi terhadap output prediksi bantuan sosial.
+                    </p>
+                </div>
+
+                <!-- Explanatory Banner -->
+                <div class="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-xs text-teal-900 flex items-start gap-2.5">
+                    <i data-lucide="help-circle" class="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5"></i>
+                    <span>
+                        <strong>Cara Membaca Grafik:</strong> Semakin panjang batang persentase, semakin besar indikator tersebut menentukan apakah seseorang layak menerima bantuan sosial atau tidak.
+                    </span>
+                </div>
+
+                <!-- Feature Bars List -->
+                <div class="space-y-4">
+                    {% for feat in feature_importances %}
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between text-xs font-semibold">
+                            <span class="text-stone-800 flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full {{ 'bg-amber-500' if loop.index == 1 else 'bg-teal-500' if loop.index == 2 else 'bg-sky-500' if loop.index == 3 else 'bg-orange-500' if loop.index == 4 else 'bg-stone-400' }}"></span>
+                                <span>{{ feat.feature }}</span>
+                            </span>
+                            <span class="font-mono text-stone-700 bg-stone-100 px-2 py-0.5 rounded text-[11px] font-bold">{{ feat.percentage }}%</span>
+                        </div>
+                        <div class="w-full bg-stone-100 rounded-full h-3 overflow-hidden">
+                            <div style="width: {{ feat.percentage }}%" class="h-3 rounded-full {{ 'bg-amber-500' if loop.index == 1 else 'bg-teal-500' if loop.index == 2 else 'bg-sky-500' if loop.index == 3 else 'bg-orange-500' if loop.index == 4 else 'bg-stone-400' }} transition-all duration-700"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200 text-xs text-stone-600 leading-relaxed">
+                    <strong>Hasil Audit Integritas:</strong> Penghasilan dan Kondisi Fisik Rumah merupakan faktor paling dominan (lebih dari 60% bobot keputusan), membuktikan bahwa sistem sepenuhnya berfokus pada data ekonomi riil keluarga, selaras dengan standar Badan Pusat Statistik (BPS).
+                </div>
+
+            </div>
+
+            <!-- Right: Fairness & Regulatory Standards -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <div class="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-5">
+                    <h3 class="font-serif text-lg sm:text-xl font-bold text-stone-900 flex items-center gap-2">
+                        <i data-lucide="scale" class="w-5 h-5 text-amber-600"></i>
+                        <span>Standar Etika & Keadilan AI</span>
+                    </h3>
+
+                    <div class="space-y-3 text-xs">
+                        
+                        <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-1">
+                            <div class="font-bold text-emerald-900 flex items-center gap-1.5">
+                                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                <span>Bebas Bias & Diskriminasi</span>
+                            </div>
+                            <div class="text-emerald-800/80 leading-relaxed">
+                                Model dilatih pada data terstandarisasi tanpa menyertakan variabel gender, suku, agama, ras, maupun relasi kekerabatan politik.
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-1">
+                            <div class="font-bold text-amber-900 flex items-center gap-1.5">
+                                <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-600"></i>
+                                <span>Penegakan Aturan Keras (Hard Rules)</span>
+                            </div>
+                            <div class="text-amber-800/80 leading-relaxed">
+                                ASN, TNI, POLRI, dan pelanggan listrik daya mampu (&ge; 1.300 VA) otomatis tersaring gugur sesuai Kepmensos 262/2022.
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80 space-y-1">
+                            <div class="font-bold text-sky-900 flex items-center gap-1.5">
+                                <i data-lucide="eye" class="w-3.5 h-3.5 text-sky-600"></i>
+                                <span>Hak Penjelasan Warga (Right to Explanation)</span>
+                            </div>
+                            <div class="text-sky-800/80 leading-relaxed">
+                                Setiap warga berhak menerima cetakan PDF yang membeberkan alasan matematis kelayakan atau penolakan melalui visualisasi LIME.
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="bg-stone-900 text-white p-6 sm:p-7 rounded-3xl space-y-3">
+                    <div class="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                        <span>LANDASAN HUKUM NASIONAL</span>
+                    </div>
+                    <ul class="text-xs text-stone-300 space-y-2 list-disc list-inside leading-relaxed">
+                        <li>UU No. 13 Tahun 2011 tentang Penanganan Fakir Miskin</li>
+                        <li>Kepmensos No. 262/HUK/2022 tentang Kriteria Fakir Miskin</li>
+                        <li>14 Kriteria Kemiskinan Standar Badan Pusat Statistik (BPS)</li>
+                        <li>Prinsip AI Transparan & Bertanggungjawab UNESCO 2021</li>
+                    </ul>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

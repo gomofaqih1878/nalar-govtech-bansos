@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block title %}Verifikasi Kelayakan Individu | NALAR{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+    
+    <!-- Header -->
+    <div class="max-w-3xl space-y-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
+            <i data-lucide="user-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+            <span>Modul Verifikasi Berbasis Kriteria BPS & Kemensos RI</span>
+        </div>
+        <h1 class="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-stone-900">
+            Verifikasi Kelayakan Individu & Penanganan Sanggahan
+        </h1>
+        <p class="text-stone-600 text-sm leading-relaxed">
+            Verifikasi kelayakan bantuan sosial secara objektif dan mendalam melalui Explainable AI (LIME), dilengkapi modul khusus penanganan sengketa data, anomali <em>exclusion error</em> DTSEN, dan pembuktian faktual lapangan.
+        </p>
+    </div>
+
+    <!-- Workspace: Form + Live Results -->
+    <div class="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 sm:p-8 space-y-6">
+        
+        <!-- Status Mode Pengguna: Warga vs Petugas -->
+        {% if is_logged_in %}
+            <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span><strong>Mode Petugas Dinas Sosial Aktif:</strong> {{ operator_name }} (NIP: {{ operator_nip }})</span>
+                </div>
+                <div class="flex items-center gap-2 font-medium">
+                    <span class="text-amber-800 text-[11px]">Wewenang: Penetapan Berita Acara & SK Resmi</span>
+                    <a href="{{ url_for('logout') }}" class="text-[11px] underline text-stone-600 hover:text-stone-900">Keluar Petugas</a>
+                </div>
+            </div>
+        {% else %}
+            <div class="p-3.5 rounded-2xl bg-stone-100 border border-stone-200 text-xs text-stone-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4 text-stone-500"></i>
+                    <span><strong>Mode Warga / Publik:</strong> Pemeriksaan mandiri & simulasi sanggahan. Hasil berfungsi sebagai bukti awal pengajuan keberatan.</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-stone-500">Anda aparatur dinas?</span>
+                    <a href="{{ url_for('login') }}" class="text-xs font-bold text-amber-700 hover:text-amber-800 underline">Masuk Akun Petugas</a>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Bar Contoh Cepat (1-Klik) -->
+        <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-amber-600"></i>
+                <span class="text-xs font-bold text-stone-800">Skenario Uji Cepat (1-Klik):</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="fillDemoForm('layak')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Contoh 1: Keluarga Layak (Buruh, Rp 1,2 jt)
+                </button>
+                <button type="button" onclick="fillDemoForm('pns')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                    Contoh 2: Keluarga Mampu / ASN (Ditolak)
+                </button>
+                <button type="button" onclick="fillDemoForm('marjinal')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Contoh 3: Petani Rentan (Gagal Panen)
+                </button>
+                <button type="button" onclick="fillDemoForm('sengketa_dtsen')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-50 text-purple-900 border border-purple-300 hover:bg-purple-100 transition flex items-center gap-1.5 shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-purple-600 animate-pulse"></span>
+                    Contoh 4: Sengketa DTSEN (Desil 10 Faktual Miskin)
+                </button>
+            </div>
+        </div>
+
+        <!-- Grid 2 Kolom -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Kolom Kiri: Formulir Input -->
+            <div class="lg:col-span-5 space-y-4">
+                <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+                    <h2 class="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
+                        <i data-lucide="file-edit" class="w-4 h-4 text-amber-600"></i>
+                        Data Keluarga Pemohon & Sanggahan
+                    </h2>
+                    <span class="text-[11px] text-stone-400">Parameter Terpadu</span>
+                </div>
+
+                <form id="formVerifikasi" onsubmit="submitVerification(event)" class="space-y-4">
+                    
+                    <!-- NIK & Nama -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                                Nomor Induk Kependudukan (NIK)
+                            </label>
+                            <input type="text" name="nik" required maxlength="16" value="3673892100450012" placeholder="16 Digit NIK"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-stone-50/50">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                                Nama Kepala Keluarga
+                            </label>
+                            <input type="text" name="nama" required value="Ahmad Supardi" placeholder="Nama lengkap kepala keluarga"
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-stone-50/50">
+                        </div>
+                    </div>
+
+                    <!-- Panel Basis Data DTSEN / P3KE Hulu -->
+                    <div class="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                                <i data-lucide="database" class="w-4 h-4 text-amber-700"></i>
+                                <span>Status Register Nasional (DTSEN / P3KE / DTKS)</span>
+                            </span>
+                            <span class="text-[10px] text-amber-800 font-semibold font-mono">Pusdatin Data</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-stone-700 mb-1">
+                                    Desil Terdata di DTSEN:
+                                </label>
+                                <select name="desil_dtsen" id="formDesilDtsen" class="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white focus:ring-2 focus:ring-amber-500 outline-none">
+                                    {% for d in options.desil_dtsen %}
+                                        <option value="{{ d }}" {% if 'Desil 2' in d %}selected{% endif %}>{{ d }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-stone-700 mb-1">
+                                    Jalur / Status Verifikasi:
+                                </label>
+                                <select name="jalur_sanggahan" id="formJalurSanggahan" class="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs bg-white focus:ring-2 focus:ring-amber-500 outline-none">
+                                    {% for j in options.jalur_verifikasi %}
+                                        <option value="{{ j }}">{{ j }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-stone-500 leading-tight">
+                            * Jika warga terdata Desil 10 namun faktual miskin, pilih <strong>Sanggahan / Koreksi Exclusion Error DTSEN</strong> untuk memicu investigasi fakta lapangan.
+                        </p>
+                    </div>
+
+                    <!-- Pekerjaan & Pendapatan -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                                Pekerjaan Faktual
+                            </label>
+                            <select name="pekerjaan" onchange="checkFormPolicies()" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-stone-50/50">
+                                {% for pek in options.pekerjaan %}
+                                    <option value="{{ pek }}" {% if pek == 'Buruh Harian' %}selected{% endif %}>{{ pek }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                                Penghasilan Riil / Bulan
+                            </label>
+                            <input type="number" name="pendapatan" step="100000" min="0" value="1200000" required
+                                   class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-stone-50/50">
+                        </div>
+                    </div>
+
+                    <!-- Tanggungan Keluarga Slider -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs font-bold text-stone-700 uppercase tracking-wider">
+                                Jumlah Tanggungan Keluarga
+                            </label>
+                            <span id="tanggunganDisplay" class="font-mono text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                                4 Orang
+                            </span>
+                        </div>
+                        <input type="range" name="tanggungan" min="1" max="10" value="4" 
+                               oninput="document.getElementById('tanggunganDisplay').innerText = this.value + ' Orang'"
+                               class="w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-amber-600">
+                    </div>
+
+                    <!-- Kondisi Rumah & Listrik -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                                Kondisi Fisik Rumah
+                            </label>
+                            <select name="rumah" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-stone-50/50">
+                                {% for rm in options.kondisi_rumah %}
+                                    <option value="{{ rm }}" {% if rm == 'Tidak Permanen' %}selected{% endif %}>{{ rm }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                                Daya Listrik Terpasang
+                            </label>
+                            <select name="listrik" onchange="checkFormPolicies()" class="w-full px-3 py-2.5 rounded-xl border border-stone-300 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-stone-50/50">
+                                {% for va in options.daya_listrik %}
+                                    <option value="{{ va }}" {% if va == 450 %}selected{% endif %}>{{ va }} VA</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Peringatan Otomatis Jika Memilih ASN / Listrik Tinggi -->
+                    <div id="livePolicyWarnings"></div>
+
+                    <!-- Panel Khusus Petugas Dinas Sosial (Hanya Muncul Jika Sudah Login) -->
+                    {% if is_logged_in %}
+                    <div class="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-300 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                                <i data-lucide="award" class="w-4 h-4 text-amber-700"></i>
+                                <span>Wewenang Verifikator: Berita Acara Survei Lapangan</span>
+                            </span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-bold font-mono">NIP: {{ operator_nip }}</span>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-stone-700 mb-1">Catatan Verifikasi Lapangan Petugas:</label>
+                            <input type="text" name="catatan_petugas" value="Telah disurvei langsung ke lokasi, kondisi riil sesuai parameter DTKS." placeholder="Ketik catatan survei lapangan..."
+                                   class="w-full px-3 py-1.5 rounded-xl border border-amber-300 text-xs bg-white focus:ring-2 focus:ring-amber-500 outline-none">
+                        </div>
+                        <p class="text-[10px] text-amber-800 leading-tight">
+                            * Catatan dan tanda tangan digital Anda akan dicetak langsung pada Surat Keputusan (SK) resmi yang sah secara hukum.
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Catatan Tambahan / Sanggahan Warga -->
+                    <div>
+                        <label class="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                            <span>Narasi Sanggahan / Catatan Khusus Warga</span>
+                            <span class="text-[10px] text-stone-400 font-normal">Sentimen NLP & Right to Contest</span>
+                        </label>
+                        <textarea name="sanggahan" rows="2" placeholder="Contoh: Di data DTSEN tertulis Desil 10 padahal rumah kami beralas tanah..."
+                                  class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition bg-stone-50/50">Mohon bantuannya untuk biaya makan anak-anak dan kebutuhan sekolah dasar.</textarea>
+                    </div>
+
+                    <!-- Tombol Periksa Kelayakan -->
+                    <div class="pt-1">
+                        <button type="submit" id="btnSubmitVerifikasi" class="w-full py-3.5 px-6 rounded-2xl bg-stone-900 hover:bg-black text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="search" class="w-4 h-4 text-amber-400"></i>
+                            <span>Periksa Kelayakan & Risalah XAI Sekarang</span>
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Kolom Kanan: Hasil Keputusan & Risalah Naratif XAI -->
+            <div class="lg:col-span-7 space-y-4">
+                
+                <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+                    <h2 class="font-serif text-lg font-bold text-stone-900 flex items-center gap-2">
+                        <i data-lucide="clipboard-check" class="w-4 h-4 text-emerald-600"></i>
+                        Hasil Keputusan AI & Risalah Pertimbangan
+                    </h2>
+                    <span class="text-[11px] text-stone-400">Transparansi XAI & LIME</span>
+                </div>
+
+                <!-- Placeholder Sebelum Submit -->
+                <div id="waitingPlaceholder" class="p-8 sm:p-12 rounded-2xl border-2 border-dashed border-stone-200 text-center space-y-3">
+                    <div class="w-14 h-14 mx-auto rounded-full bg-amber-50 text-amber-700 flex items-center justify-center">
+                        <i data-lucide="help-circle" class="w-7 h-7"></i>
+                    </div>
+                    <div class="font-serif text-lg font-bold text-stone-800">Menunggu Pemeriksaan Data</div>
+                    <p class="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
+                        Tekan tombol <strong>"Periksa Kelayakan Sekarang"</strong> di samping atau klik salah satu <strong>tombol skenario uji cepat</strong> untuk melihat risalah pertimbangan naratif lengkap.
+                    </p>
+                </div>
+
+                <!-- Container Hasil (Muncul Otomatis Setelah Cek) -->
+                <div id="verificationResultContainer" class="hidden space-y-5">
+                    
+                    <!-- Alert Anomali Sengketa Data DTSEN (Muncul Jika Terjadi Mismatch Desil 10 vs Fakta) -->
+                    <div id="resDtsenAnomalyBanner" class="hidden p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 space-y-2">
+                        <div class="flex items-start gap-3">
+                            <i data-lucide="alert-octagon" class="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5"></i>
+                            <div class="space-y-1">
+                                <div class="font-bold text-xs text-rose-950 uppercase tracking-wide flex flex-wrap items-center gap-2">
+                                    <span>Peringatan Anomali Exclusion Error Administratif</span>
+                                    <span class="px-2 py-0.5 rounded-full bg-rose-200 text-rose-900 text-[10px] font-mono">DTSEN Mismatch</span>
+                                </div>
+                                <p id="resDtsenAnomalyText" class="text-xs text-rose-900 leading-relaxed text-justify"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 1. Kartu Status Keputusan Utama -->
+                    <div class="p-5 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Status Rekomendasi</span>
+                                <div id="resStatusBadge"></div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-stone-500 block">Tingkat Keyakinan Algoritma</span>
+                                <span id="resProbLayak" class="font-serif font-bold text-lg text-stone-900">--%</span>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar Keyakinan -->
+                        <div class="w-full bg-stone-200 rounded-full h-2.5 overflow-hidden">
+                            <div id="resProbBar" style="width: 0%" class="h-2.5 rounded-full bg-emerald-500 transition-all duration-500"></div>
+                        </div>
+
+                        <!-- Sentimen & Regulasi Bar -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                            <span class="text-stone-500">Sentimen Pengaduan: <span id="resSentimentBadge" class="font-semibold text-stone-800">Netral</span></span>
+                            <span class="text-stone-400 text-[11px]">Sesuai UU No. 13/2011 & Kepmensos 262/2022</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. ALASAN PENETAPAN & BUKTI PERTIMBANGAN LAPANGAN (BAHASA MANUSIAWI) -->
+                    <div class="p-6 rounded-3xl bg-white border border-stone-200 shadow-sm space-y-5">
+                        
+                        <div class="border-b border-stone-100 pb-3 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                                    <i data-lucide="book-open-check" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-serif text-base font-bold text-stone-900">
+                                        Alasan Penetapan & Bukti Kelayakan Keluarga
+                                    </h3>
+                                    <p class="text-[11px] text-stone-500">Penjelasan langsung kondisi keluarga tanpa istilah teknis yang rumit</p>
+                                </div>
+                            </div>
+                            <span class="text-[11px] px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200">Bahasa Jelas & Transparan</span>
+                        </div>
+
+                        <!-- A. Ringkasan Alasan Keputusan -->
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-600"></i>
+                                Ringkasan Mengapa Diterima / Ditolak
+                            </h4>
+                            <div id="resExecutiveSummary" class="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/80 text-xs text-stone-700 leading-relaxed text-justify">
+                            </div>
+                        </div>
+
+                        <!-- B. 4 Kondisi Nyata Keluarga -->
+                        <div class="space-y-3">
+                            <h4 class="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="layers" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                Pemeriksaan 4 Kondisi Nyata Keluarga
+                            </h4>
+
+                            <div class="grid grid-cols-1 gap-3">
+                                
+                                <!-- Dimensi 1: Penghasilan & Biaya Makan Per Orang -->
+                                <div class="p-4 rounded-2xl bg-white border border-stone-200 space-y-1.5">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                                            <i data-lucide="coins" class="w-3.5 h-3.5 text-amber-600"></i>
+                                            1. Penghasilan & Biaya Hidup Per Orang
+                                        </span>
+                                        <span id="resPovertyCategory" class="text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200"></span>
+                                    </div>
+                                    <p id="resIncomeNarrative" class="text-xs text-stone-600 leading-relaxed text-justify"></p>
+                                </div>
+
+                                <!-- Dimensi 2: Kondisi Rumah Tinggal -->
+                                <div class="p-4 rounded-2xl bg-white border border-stone-200 space-y-1.5">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                                            <i data-lucide="home" class="w-3.5 h-3.5 text-sky-600"></i>
+                                            2. Kondisi Fisik Rumah Tinggal
+                                        </span>
+                                        <span class="text-[11px] text-stone-500 font-medium">Tempat Tinggal</span>
+                                    </div>
+                                    <p id="resHousingNarrative" class="text-xs text-stone-600 leading-relaxed text-justify"></p>
+                                </div>
+
+                                <!-- Dimensi 3: Daya Listrik Rumah Tangga -->
+                                <div class="p-4 rounded-2xl bg-white border border-stone-200 space-y-1.5">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                                            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+                                            3. Pemakaian Listrik Rumah Tangga
+                                        </span>
+                                        <span class="text-[11px] text-stone-500 font-medium">Tarif PLN</span>
+                                    </div>
+                                    <p id="resElectricityNarrative" class="text-xs text-stone-600 leading-relaxed text-justify"></p>
+                                </div>
+
+                                <!-- Dimensi 4: Pekerjaan & Sumber Penghasilan -->
+                                <div class="p-4 rounded-2xl bg-white border border-stone-200 space-y-1.5">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                                            <i data-lucide="briefcase" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                            4. Pekerjaan & Sumber Penghasilan
+                                        </span>
+                                        <span class="text-[11px] text-stone-500 font-medium">Aturan Anti-PNS</span>
+                                    </div>
+                                    <p id="resProfessionNarrative" class="text-xs text-stone-600 leading-relaxed text-justify"></p>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- C. Telaah Sengketa DTSEN -->
+                        <div id="resDtsenSection" class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-700"></i>
+                                    Pemeriksaan Sengketa Data DTSEN (Perbedaan Catatan vs Fakta Lapangan)
+                                </span>
+                                <span class="text-[10px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded">Hasil Cek Lapangan</span>
+                            </div>
+                            <p id="resDtsenAuditNarrative" class="text-xs text-amber-900 leading-relaxed text-justify whitespace-pre-line"></p>
+                        </div>
+
+                        <!-- D. Batas Perubahan Kondisi Ekonomi -->
+                        <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                                    <i data-lucide="help-circle" class="w-3.5 h-3.5 text-stone-600"></i>
+                                    <span id="resCounterfactualHeadline">Batas Perubahan Kondisi Ekonomi (Kapan Bantuan Berubah?)</span>
+                                </span>
+                                <span class="text-[10px] text-stone-500">Penjelasan Singkat</span>
+                            </div>
+                            <p id="resCounterfactualDetails" class="text-xs text-stone-600 leading-relaxed text-justify"></p>
+                        </div>
+
+                        <!-- E. Grafik Faktor Penentu Utama -->
+                        <div class="space-y-2 pt-2 border-t border-stone-100">
+                            <div class="flex items-center justify-between">
+                                <div class="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-amber-600"></i>
+                                    Faktor Penentu Utama:
+                                </div>
+                                <span class="text-[10px] text-stone-400">Hijau = Memperkuat Hak Bantuan, Merah = Menolak</span>
+                            </div>
+                            <div class="h-44 w-full bg-stone-50/50 p-2 rounded-xl border border-stone-100">
+                                <canvas id="limeChartCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- F. Kutipan Berita Acara Resmi -->
+                        <div class="space-y-2 pt-2 border-t border-stone-100">
+                            <div class="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="shield-check" class="w-3.5 h-3.5 text-stone-700"></i>
+                                Kutipan Berita Acara Resmi Penetapan Bantuan:
+                            </div>
+                            <div id="resScientificJustification" class="p-3.5 bg-stone-100 rounded-xl font-mono text-[11px] text-stone-800 whitespace-pre-wrap leading-relaxed border border-stone-200">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- 3. Tombol Unduh Dokumen Resmi (PDF) -->
+                    <form id="formDownloadPdf" action="{{ url_for('api_download_pdf') }}" method="POST" target="_blank" onsubmit="syncPdfFormData()" class="space-y-1.5">
+                        <input type="hidden" name="nik" value="">
+                        <input type="hidden" name="nama" value="">
+                        <input type="hidden" name="pekerjaan" value="">
+                        <input type="hidden" name="pendapatan" value="">
+                        <input type="hidden" name="tanggungan" value="">
+                        <input type="hidden" name="rumah" value="">
+                        <input type="hidden" name="listrik" value="">
+                        <input type="hidden" name="hasil" value="">
+                        <input type="hidden" name="sanggahan" value="">
+                        <input type="hidden" name="catatan_petugas" value="">
+                        <input type="hidden" name="desil_dtsen" value="">
+                        <input type="hidden" name="jalur_sanggahan" value="">
+                        
+                        {% if is_logged_in %}
+                            <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-stone-900 hover:bg-black text-amber-400 font-bold text-xs shadow-md transition flex items-center justify-center gap-2 border border-stone-800">
+                                <i data-lucide="file-check-2" class="w-4 h-4"></i>
+                                <span>📜 Cetak Berita Acara & SK Penetapan Resmi (Ber-Kop & Ber-NIP Petugas)</span>
+                            </button>
+                            <div class="text-[11px] text-center text-stone-500">
+                                Dokumen resmi berkekuatan hukum yang disahkan oleh {{ operator_name }} (NIP. {{ operator_nip }})
+                            </div>
+                        {% else %}
+                            <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow transition flex items-center justify-center gap-2">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                <span>📄 Unduh Bukti Simulasi Mandiri & Risalah Sanggahan (PDF)</span>
+                            </button>
+                            <div class="text-[11px] text-center text-stone-500">
+                                Berstatus draf simulasi mandiri. Untuk pengesahan SK resmi berkekuatan hukum, <a href="{{ url_for('login') }}" class="underline font-bold text-amber-700">Masuk sebagai Petugas</a>.
+                            </div>
+                        {% endif %}
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

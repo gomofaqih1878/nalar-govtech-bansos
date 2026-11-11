@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Pemrosesan Massal (Batch CSV) | NALAR{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+    
+    <!-- Header Sederhana -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-200">
+        <div class="space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200 text-xs font-semibold text-sky-800">
+                <i data-lucide="database" class="w-3.5 h-3.5 text-sky-600"></i>
+                <span>Evaluasi Data Kolektif / Tingkat Wilayah</span>
+            </div>
+            <h1 class="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-stone-900">
+                Pemrosesan Rekap Massal (CSV)
+            </h1>
+            <p class="text-stone-600 text-sm max-w-2xl leading-relaxed">
+                Unggah file CSV berisi data warga (desa/kecamatan) untuk dinilai kelayakannya oleh kecerdasan buatan secara serentak dalam hitungan detik.
+            </p>
+        </div>
+
+        <div>
+            <a href="{{ url_for('api_download_template') }}" class="px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                <i data-lucide="download" class="w-4 h-4 text-amber-400"></i>
+                <span>Unduh Template CSV</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Peran Petugas vs Publik -->
+    {% if is_logged_in %}
+        <div class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span><strong>Akses Otoritas Penuh:</strong> Anda masuk sebagai <strong>{{ operator_name }} (NIP: {{ operator_nip }})</strong>. Anda berhak memproses dan mengekspor Berita Acara Rekapitulasi Wilayah.</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="text-[11px] underline text-stone-600 hover:text-stone-900">Keluar Petugas</a>
+        </div>
+    {% else %}
+        <div class="p-3.5 rounded-2xl bg-stone-100 border border-stone-200 text-xs text-stone-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-stone-500 flex-shrink-0"></i>
+                <span><strong>Mode Pratinjau Publik:</strong> Pemrosesan data massal melibatkan privasi NIK warga. Pengesahan rekap resmi ber-NIP membutuhkan login Petugas.</span>
+            </div>
+            <a href="{{ url_for('login') }}?next={{ request.path }}" class="text-xs font-bold text-amber-700 hover:text-amber-800 underline">Masuk Akun Petugas</a>
+        </div>
+    {% endif %}
+
+    <!-- Upload Drag & Drop Area Bersih -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+        
+        <input type="file" id="batchFileInput" accept=".csv" class="hidden">
+        
+        <div id="batchDropArea" class="border-2 border-dashed border-stone-300 rounded-2xl p-8 sm:p-12 text-center cursor-pointer hover:border-amber-500 hover:bg-amber-50/20 transition-all space-y-3">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
+                <i data-lucide="upload-cloud" class="w-7 h-7"></i>
+            </div>
+            <div>
+                <h3 class="font-serif text-lg font-bold text-stone-800">
+                    Klik atau Tarik File CSV ke Area Ini
+                </h3>
+                <p class="text-xs text-stone-500 mt-1 max-w-lg mx-auto">
+                    Format kolom standar: <code class="font-mono bg-stone-100 px-1 py-0.5 rounded text-stone-700">NIK_Keluarga, Pekerjaan_Kepala_Keluarga, Pendapatan_Bln_Rp, Jml_Tanggungan, Kondisi_Rumah, Daya_Listrik_VA</code>
+                </p>
+            </div>
+            <button type="button" class="px-4 py-2 rounded-xl bg-amber-500 text-white font-bold text-xs pointer-events-none shadow-sm">
+                Pilih Berkas CSV dari Komputer
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="batchLoadingState" class="hidden text-center py-8 space-y-2">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-3 border-amber-500 border-t-transparent"></div>
+            <div class="font-serif text-base font-bold text-stone-800">AI Sedang Mengevaluasi Data Warga...</div>
+            <p class="text-xs text-stone-500">Mengkalkulasi probabilitas kelayakan dan skor kemiskinan.</p>
+        </div>
+
+    </div>
+
+    <!-- Hasil Pemrosesan Batch -->
+    <div id="batchResultState" class="hidden space-y-6">
+        
+        <!-- Kartu Ringkasan Metrik -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-1">
+                <div class="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Rekor Data</div>
+                <div id="bTotalRows" class="font-serif text-2xl sm:text-3xl font-bold text-stone-900">0</div>
+                <div class="text-[11px] text-stone-400">Warga terverifikasi</div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-1">
+                <div class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Disetujui Layak</div>
+                <div id="bLayakCount" class="font-serif text-2xl sm:text-3xl font-bold text-emerald-700">0</div>
+                <div class="text-[11px] text-emerald-600/80">Keluarga prasejahtera</div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-1">
+                <div class="text-xs font-bold text-rose-600 uppercase tracking-wider">Tidak Memenuhi Syarat</div>
+                <div id="bTidakLayakCount" class="font-serif text-2xl sm:text-3xl font-bold text-rose-700">0</div>
+                <div class="text-[11px] text-rose-600/80">Keluarga mampu / ASN</div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm space-y-1">
+                <div class="text-xs font-bold text-amber-600 uppercase tracking-wider">Rasio Kelayakan</div>
+                <div id="bLayakPercentage" class="font-serif text-2xl sm:text-3xl font-bold text-amber-700">0%</div>
+                <div class="text-[11px] text-amber-600/80">Persentase kelulusan</div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-purple-50/70 border border-purple-200 shadow-sm space-y-1 col-span-2 lg:col-span-1">
+                <div class="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1">
+                    <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-purple-600"></i>
+                    Anomali DTSEN
+                </div>
+                <div id="bAnomalyCount" class="font-serif text-2xl sm:text-3xl font-bold text-purple-900">0</div>
+                <div class="text-[11px] text-purple-700">Exclusion Error / Sanggahan</div>
+            </div>
+
+        </div>
+
+        <!-- Tombol Lanjut ke Simulasi Kuota Secara Mulus (Tanpa Input Ulang) -->
+        <div class="p-5 rounded-3xl bg-amber-50/90 border-2 border-amber-300 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <i data-lucide="sliders" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h4 class="font-serif text-sm font-bold text-amber-950">
+                        Data Warga Otomatis Terhubung ke Simulasi Kuota!
+                    </h4>
+                    <p class="text-xs text-amber-900/80">
+                        Tidak perlu input 2 kali. Anda bisa langsung menguji batas kuota penerima dan pagu anggaran daerah untuk data warga ini.
+                    </p>
+                </div>
+            </div>
+            <a href="{{ url_for('simulasi') }}" class="px-5 py-3 rounded-2xl bg-stone-900 hover:bg-black text-amber-400 font-bold text-xs shadow-md transition flex items-center gap-2 whitespace-nowrap">
+                <span>Lanjutkan ke Simulasi Kuota Wilayah Ini</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+        </div>
+
+        <!-- Tabel Pratinjau & Tombol Download CSV -->
+        <div class="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden p-6 sm:p-8 space-y-4">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-4">
+                <div>
+                    <h3 class="font-serif text-lg sm:text-xl font-bold text-stone-900 flex items-center gap-2">
+                        <i data-lucide="list-ordered" class="w-5 h-5 text-amber-600"></i>
+                        <span>Perankingan Kelayakan & Audit Anomali DTSEN (Top 50)</span>
+                    </h3>
+                    <p class="text-xs text-stone-500 mt-0.5">
+                        Warga diurutkan dari skor kemiskinan tertinggi (#1) ke terendah. Kasus anomali Desil 10 yang terbukti miskin ditandai secara otomatis.
+                    </p>
+                </div>
+
+                <a href="{{ url_for('api_export_batch') }}" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 self-start sm:self-auto shadow-sm">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                    <span>Ekspor Hasil Lengkap (.CSV)</span>
+                </a>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-stone-50 border-b border-stone-200 text-[11px] font-bold text-stone-600 uppercase tracking-wider">
+                            <th class="px-3.5 py-3">Ranking</th>
+                            <th class="px-3.5 py-3">NIK Keluarga</th>
+                            <th class="px-3.5 py-3">Pekerjaan</th>
+                            <th class="px-3.5 py-3">Penghasilan</th>
+                            <th class="px-3.5 py-3">Tanggungan</th>
+                            <th class="px-3.5 py-3">Keputusan</th>
+                            <th class="px-3.5 py-3">Skor AI</th>
+                            <th class="px-3.5 py-3">Status Audit DTSEN & Sanggahan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batchTableBody" class="divide-y divide-stone-100 text-xs">
+                        <!-- Diisi via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
